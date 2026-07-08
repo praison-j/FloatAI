@@ -3,15 +3,16 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "main": "dist-electron/main.js",
+  "main": "dist-electron/main.cjs",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "compile-electron": "tsc --project tsconfig.electron.json",
+    "compile-electron": "tsc --project tsconfig.electron.json && node scripts/fix-electron-extensions.mjs",
     "electron-dev": "concurrently \"npm run dev\" \"wait-on http://localhost:5173 && npm run compile-electron && electron .\"",
-    "electron-pack": "npm run build && npm run compile-electron && electron-builder"
+    "electron-pack": "npm run build && npm run compile-electron && electron-builder",
+    "electron-pack-fallback": "npm run build && npm run compile-electron && electron-packager . FloatAI --platform=win32 --arch=x64 --overwrite --out=release --prune=true --ignore=\"^/(src|electron|\\.github|\\.git|terminals|agent-transcripts)/\""
   },
   "dependencies": {
     "electron-is-dev": "^3.0.1",

@@ -12,15 +12,12 @@ interface LandingPageProps {
   onLaunchApp: () => void;
 }
 
+const WINDOWS_DOWNLOAD_URL =
+  'https://github.com/praison-j/FloatAI/releases/download/v1.0.0/FloatAI-win32-x64.zip';
+
 export const LandingPage: React.FC<LandingPageProps> = ({ onLaunchApp }) => {
   const handleDownload = () => {
-    // Create an anchor element to trigger the download of the packaged portable exe
-    const link = document.createElement('a');
-    link.href = '/downloads/FloatAI.exe';
-    link.download = 'FloatAI.exe';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    window.open(WINDOWS_DOWNLOAD_URL, '_blank', 'noopener,noreferrer');
   };
 
   return (

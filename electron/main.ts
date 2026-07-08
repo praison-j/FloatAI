@@ -13,7 +13,7 @@ function createWindow() {
     transparent: false, // Can't be transparent if we want frame transitions or webviews inside (webviews don't support transparent windows well in some configurations)
     backgroundColor: '#0a0a0c', // Dark background to prevent white flash
     webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
+      preload: path.join(__dirname, 'preload.cjs'),
       nodeIntegration: false,
       contextIsolation: true,
       webviewTag: true, // Crucial for embedding external AI websites
