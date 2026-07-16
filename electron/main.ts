@@ -1,10 +1,50 @@
 import { app, BrowserWindow, ipcMain, shell } from 'electron';
+import { autoUpdater } from 'electron-updater';
 import * as path from 'path';
 
 let mainWindow: BrowserWindow | null = null;
 let iconWindow: BrowserWindow | null = null;
 
+function sendUpdateStatus(status: string, details: any = {}) {
+  [mainWindow, iconWindow].forEach((window) => {
+    if (window?.webContents) {
+      window.webContents.send('update-status', { status, ...details });
+    }
+  });
+}
+
 function createWindow() {
+  autoUpdater.autoDownload = false;
+
+  autoUpdater.on('checking-for-update', () => {
+    sendUpdateStatus('checking');
+  });
+
+  autoUpdater.on('update-available', (info) => {
+    sendUpdateStatus('update-available', info);
+    autoUpdater.downloadUpdate();
+  });
+
+  autoUpdater.on('update-not-available', () => {
+    sendUpdateStatus('update-not-available');
+  });
+
+  autoUpdater.on('download-progress', (progress) => {
+    sendUpdateStatus('download-progress', progress);
+  });
+
+  autoUpdater.on('update-downloaded', () => {
+    sendUpdateStatus('update-downloaded');
+    // Install automatically after the update has fully downloaded.
+    setTimeout(() => {
+      autoUpdater.quitAndInstall();
+    }, 1000);
+  });
+
+  autoUpdater.on('error', (error) => {
+    sendUpdateStatus('error', { message: error == null ? 'Unknown error' : error.message });
+  });
+
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
@@ -129,6 +169,21 @@ ipcMain.on('set-always-on-top', (event, flag: boolean) => {
 ipcMain.on('set-window-opacity', (event, opacity: number) => {
   if (mainWindow) {
     mainWindow.setOpacity(opacity);
+  }
+});
+
+ipcMain.handle('check-for-updates', async () => {
+  if (!app.isPackaged) {
+    sendUpdateStatus('dev-mode');
+    return { success: false, message: 'Auto-update is disabled in development mode.' };
+  }
+  try {
+    await autoUpdater.checkForUpdates();
+    return { success: true };
+  } catch (error: any) {
+    const message = error?.message || 'Unable to check for updates.';
+    sendUpdateStatus('error', { message });
+    return { success: false, message };
   }
 });
 

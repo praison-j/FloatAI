@@ -187,12 +187,34 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+.search-button.tertiary {
+  background: rgba(59, 130, 246, 0.12);
+  color: #93c5fd;
+  border: 1px solid rgba(59, 130, 246, 0.22);
+}
+
+.search-button.tertiary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 .search-button:hover {
   transform: translateY(-1px);
 }
 
+.search-status-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
 .search-status {
   color: var(--text-muted);
+  font-size: 13px;
+}
+
+.update-status {
+  color: #a5f3fc;
   font-size: 13px;
 }
 

@@ -44,6 +44,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ isElectron, onGoBackToLand
   const [activePaneIndex, setActivePaneIndex] = useState<number>(0);
   const [searchText, setSearchText] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [updateState, setUpdateState] = useState<'idle' | 'checking' | 'available' | 'downloading' | 'downloaded' | 'not-available' | 'error' | 'dev-mode'>('idle');
+  const [updateMessage, setUpdateMessage] = useState('');
+  const [downloadProgress, setDownloadProgress] = useState(0);
   
   // Electron Specific window states
   const [isPinned, setIsPinned] = useState(false);
@@ -111,6 +114,72 @@ export const Dashboard: React.FC<DashboardProps> = ({ isElectron, onGoBackToLand
       (window as any).electronAPI.shrinkToIcon();
     }
   };
+
+  const handleCheckForUpdates = async () => {
+    if (!isElectron || !(window as any).electronAPI) return;
+
+    setUpdateState('checking');
+    setUpdateMessage('Checking for updates...');
+    setDownloadProgress(0);
+
+    try {
+      const result = await (window as any).electronAPI.checkForUpdates();
+      if (result?.success === false) {
+        setUpdateState('error');
+        setUpdateMessage(result.message || 'Unable to check for updates.');
+      }
+    } catch (error: any) {
+      setUpdateState('error');
+      setUpdateMessage(error?.message || 'Unable to check for updates.');
+    }
+  };
+
+  useEffect(() => {
+    if (!isElectron || !(window as any).electronAPI?.onUpdateStatus) return;
+
+    const unsubscribe = (window as any).electronAPI.onUpdateStatus((_: any, payload: any) => {
+      const status = payload?.status;
+      switch (status) {
+        case 'checking':
+          setUpdateState('checking');
+          setUpdateMessage('Checking for updates...');
+          break;
+        case 'update-available':
+          setUpdateState('available');
+          setUpdateMessage('Update available. Downloading now...');
+          break;
+        case 'update-not-available':
+          setUpdateState('not-available');
+          setUpdateMessage('No update available. You are on the latest version.');
+          break;
+        case 'download-progress':
+          setUpdateState('downloading');
+          setDownloadProgress(Math.round(payload?.percent || 0));
+          setUpdateMessage(`Downloading update... ${Math.round(payload?.percent || 0)}%`);
+          break;
+        case 'update-downloaded':
+          setUpdateState('downloaded');
+          setUpdateMessage('Update downloaded. Restarting to install...');
+          break;
+        case 'dev-mode':
+          setUpdateState('dev-mode');
+          setUpdateMessage('Auto-update is disabled in development mode.');
+          break;
+        case 'error':
+          setUpdateState('error');
+          setUpdateMessage(payload?.message || 'Update error occurred.');
+          break;
+        default:
+          break;
+      }
+    });
+
+    return () => {
+      if (typeof unsubscribe === 'function') {
+        unsubscribe();
+      }
+    };
+  }, [isElectron]);
 
   const getSearchUrl = (id: string, query: string) => {
     const encoded = encodeURIComponent(query);
@@ -243,9 +312,31 @@ export const Dashboard: React.FC<DashboardProps> = ({ isElectron, onGoBackToLand
             <button className="search-button secondary" onClick={handleShrinkToIcon}>
               Float as icon
             </button>
+            {isElectron && (
+              <button
+                className="search-button tertiary"
+                onClick={handleCheckForUpdates}
+                disabled={updateState === 'checking' || updateState === 'downloading' || updateState === 'downloaded'}
+              >
+                {updateState === 'checking'
+                  ? 'Checking...'
+                  : updateState === 'downloading'
+                    ? `Downloading ${downloadProgress}%`
+                    : updateState === 'downloaded'
+                      ? 'Installing...'
+                      : 'Check for updates'}
+              </button>
+            )}
           </div>
-          {searchQuery && (
-            <div className="search-status">Searching "{searchQuery}" across all AI assistants...</div>
+          {(searchQuery || updateMessage) && (
+            <div className="search-status-group">
+              {searchQuery && (
+                <div className="search-status">Searching "{searchQuery}" across all AI assistants...</div>
+              )}
+              {updateMessage && (
+                <div className="update-status">{updateMessage}</div>
+              )}
+            </div>
           )}
         </div>
       </div>
