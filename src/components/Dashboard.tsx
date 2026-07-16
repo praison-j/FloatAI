@@ -42,6 +42,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ isElectron, onGoBackToLand
   const [layout, setLayout] = useState<LayoutType>('split-v');
   const [activeAIs, setActiveAIs] = useState<string[]>(['chatgpt', 'perplexity', 'gemini', 'claude']);
   const [activePaneIndex, setActivePaneIndex] = useState<number>(0);
+  const [searchText, setSearchText] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   
   // Electron Specific window states
   const [isPinned, setIsPinned] = useState(false);
@@ -104,6 +106,46 @@ export const Dashboard: React.FC<DashboardProps> = ({ isElectron, onGoBackToLand
     }
   };
 
+  const handleShrinkToIcon = () => {
+    if (isElectron && (window as any).electronAPI) {
+      (window as any).electronAPI.shrinkToIcon();
+    }
+  };
+
+  const getSearchUrl = (id: string, query: string) => {
+    const encoded = encodeURIComponent(query);
+    switch (id) {
+      case 'chatgpt':
+        return query ? `https://chat.openai.com/?model=gpt-4o-mini&prompt=${encoded}` : 'https://chat.openai.com/';
+      case 'perplexity':
+        return query ? `https://www.perplexity.ai/search?q=${encoded}` : 'https://www.perplexity.ai';
+      case 'gemini':
+        return query ? `https://gemini.google.com/u/0/web?hl=en&q=${encoded}` : 'https://gemini.google.com/';
+      case 'claude':
+        return query ? `https://claude.ai/?query=${encoded}` : 'https://claude.ai/';
+      case 'deepseek':
+        return query ? `https://chat.deepseek.com/?q=${encoded}` : 'https://chat.deepseek.com/';
+      default:
+        return query ? `https://www.bing.com/search?q=${encoded}` : 'https://chat.openai.com/';
+    }
+  };
+
+  const handleSearchSubmit = () => {
+    const trimmed = searchText.trim();
+    if (!trimmed) return;
+    setSearchQuery(trimmed);
+    setLayout('grid');
+    setActiveAIs(['chatgpt', 'perplexity', 'gemini', 'claude']);
+    setActivePaneIndex(0);
+  };
+
+  const handleSearchKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
+      handleSearchSubmit();
+    }
+  };
+
   const handleSelectModel = (modelId: string) => {
     const updated = [...activeAIs];
     updated[activePaneIndex] = modelId;
@@ -154,6 +196,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ isElectron, onGoBackToLand
                 <EyeOff size={14} />
               </button>
               
+              <button className="window-control-btn" onClick={handleShrinkToIcon} title="Shrink to floating icon">
+                <Zap size={14} />
+              </button>
+              
               <div style={{ width: 1, height: 16, background: 'var(--glass-border)', margin: '0 8px' }} />
 
               <button className="window-control-btn" onClick={handleMinimize} title="Minimize">
@@ -176,6 +222,30 @@ export const Dashboard: React.FC<DashboardProps> = ({ isElectron, onGoBackToLand
             >
               Back to Home
             </button>
+          )}
+        </div>
+      </div>
+
+      <div className="search-panel">
+        <div className="search-panel-inner">
+          <textarea
+            className="search-textarea"
+            value={searchText}
+            onChange={(event) => setSearchText(event.target.value)}
+            onKeyDown={handleSearchKeyDown}
+            placeholder="Type your query here and search all AI assistants at once..."
+            rows={4}
+          />
+          <div className="search-actions">
+            <button className="search-button primary" onClick={handleSearchSubmit}>
+              Search all AIs
+            </button>
+            <button className="search-button secondary" onClick={handleShrinkToIcon}>
+              Float as icon
+            </button>
+          </div>
+          {searchQuery && (
+            <div className="search-status">Searching "{searchQuery}" across all AI assistants...</div>
           )}
         </div>
       </div>
@@ -248,7 +318,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ isElectron, onGoBackToLand
                 <AIView
                   id={model.id}
                   name={model.name}
-                  url={model.url}
+                  url={searchQuery ? getSearchUrl(model.id, searchQuery) : model.url}
                   isActive={activePaneIndex === index}
                   isElectron={isElectron}
                 />

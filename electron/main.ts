@@ -2,6 +2,7 @@ import { app, BrowserWindow, ipcMain, shell } from 'electron';
 import * as path from 'path';
 
 let mainWindow: BrowserWindow | null = null;
+let iconWindow: BrowserWindow | null = null;
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -41,6 +42,43 @@ function createWindow() {
 
   mainWindow.on('closed', () => {
     mainWindow = null;
+  });
+}
+
+function createIconWindow() {
+  if (iconWindow) {
+    iconWindow.show();
+    return;
+  }
+
+  const isDev = !app.isPackaged;
+  iconWindow = new BrowserWindow({
+    width: 120,
+    height: 120,
+    minWidth: 100,
+    minHeight: 100,
+    frame: false,
+    transparent: true,
+    alwaysOnTop: true,
+    skipTaskbar: true,
+    resizable: false,
+    movable: true,
+    backgroundColor: '#00000000',
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.cjs'),
+      nodeIntegration: false,
+      contextIsolation: true,
+    },
+  });
+
+  if (isDev) {
+    iconWindow.loadURL('http://localhost:5173/?mode=icon');
+  } else {
+    iconWindow.loadFile(path.join(__dirname, '../dist/index.html'), { query: { mode: 'icon' } });
+  }
+
+  iconWindow.on('closed', () => {
+    iconWindow = null;
   });
 }
 
@@ -91,6 +129,27 @@ ipcMain.on('set-always-on-top', (event, flag: boolean) => {
 ipcMain.on('set-window-opacity', (event, opacity: number) => {
   if (mainWindow) {
     mainWindow.setOpacity(opacity);
+  }
+});
+
+ipcMain.on('shrink-to-icon', () => {
+  if (mainWindow) {
+    mainWindow.hide();
+    createIconWindow();
+  }
+});
+
+ipcMain.on('restore-main-window', () => {
+  if (mainWindow) {
+    mainWindow.show();
+    mainWindow.focus();
+  } else {
+    createWindow();
+  }
+
+  if (iconWindow) {
+    iconWindow.close();
+    iconWindow = null;
   }
 });
 
