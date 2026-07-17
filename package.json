@@ -1,7 +1,9 @@
 {
   "name": "float-ai",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.0.1",
+  "description": "FloatAI desktop app with multi-AI search, floating icon mode, and update checker.",
+  "author": "praison-j",
   "type": "module",
   "main": "dist-electron/main.cjs",
   "repository": {
@@ -33,6 +35,7 @@
     "concurrently": "^9.1.2",
     "electron": "^34.3.0",
     "electron-builder": "^24.13.3",
+    "electron-packager": "^17.1.2",
     "oxlint": "^1.71.0",
     "typescript": "~6.0.2",
     "vite": "^8.1.1",
@@ -59,7 +62,8 @@
       "target": [
         "nsis",
         "portable"
-      ]
+      ],
+      "sign": false
     },
     "nsis": {
       "oneClick": false,
